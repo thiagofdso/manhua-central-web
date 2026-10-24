@@ -200,12 +200,13 @@ import { CanonicalManhua } from '../../core/models/catalog.model';
 
             <!-- Chapters Grid -->
             <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5 max-h-96 overflow-y-auto pr-1">
-              <div
+              <a
                 *ngFor="let ch of chapters()"
+                [routerLink]="['/reader', manhua()?.slug, ch]"
                 class="p-2.5 bg-dark-850 border border-slate-800 hover:border-brand-500 hover:bg-brand-950/30 rounded-xl text-center text-xs font-semibold text-slate-200 hover:text-brand-300 transition-colors cursor-pointer min-h-[38px] flex items-center justify-center"
               >
                 Cap. {{ ch }}
-              </div>
+              </a>
             </div>
           </div>
         </div>

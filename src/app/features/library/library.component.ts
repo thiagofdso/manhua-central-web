@@ -211,12 +211,16 @@ import { UserLibrary } from '../../core/models/library.model';
                       -
                     </button>
 
-                    <div class="text-center px-1">
-                      <div class="text-xs font-extrabold text-white">Cap. {{ item.currentChapter }}</div>
+                    <a
+                      [routerLink]="['/reader', item.canonicalManhua?.slug, item.currentChapter]"
+                      class="text-center px-1 hover:text-brand-300 transition-colors cursor-pointer"
+                      title="Abrir no Leitor"
+                    >
+                      <div class="text-xs font-extrabold text-white hover:text-brand-300">Cap. {{ item.currentChapter }}</div>
                       <div *ngIf="item.canonicalManhua?.lastChapter" class="text-[9px] text-slate-500">
                         de {{ item.canonicalManhua?.lastChapter }}
                       </div>
-                    </div>
+                    </a>
 
                     <button
                       type="button"
@@ -348,12 +352,16 @@ import { UserLibrary } from '../../core/models/library.model';
                       -
                     </button>
 
-                    <div class="text-center px-1">
-                      <div class="text-xs font-extrabold text-white">Cap. {{ item.currentChapter }}</div>
+                    <a
+                      [routerLink]="['/reader', item.canonicalManhua?.slug, item.currentChapter]"
+                      class="text-center px-1 hover:text-brand-300 transition-colors cursor-pointer"
+                      title="Abrir no Leitor"
+                    >
+                      <div class="text-xs font-extrabold text-white hover:text-brand-300">Cap. {{ item.currentChapter }}</div>
                       <div *ngIf="item.canonicalManhua?.lastChapter" class="text-[9px] text-slate-500">
                         de {{ item.canonicalManhua?.lastChapter }}
                       </div>
-                    </div>
+                    </a>
 
                     <button
                       type="button"
