@@ -33,6 +33,7 @@ test.describe('End-to-End Authentication and Account Deletion Flow', () => {
     // 3. Login
     const emailInput = page.locator('input[name="email"]');
     await emailInput.waitFor({ state: 'visible' });
+    await emailInput.click();
     await emailInput.fill(testUser.email);
     await expect(emailInput).toHaveValue(testUser.email);
 

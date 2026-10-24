@@ -47,9 +47,15 @@ test.describe('End-to-End Webtoon Continuous Reader and Streaming Proxy Flow', (
     await expect(prevBtn).toBeDisabled();
 
     // 4. Test Ceiling at lastChapter (RN-03.2)
-    // Overgeared has lastChapter = 344 in seeds
-    await page.goto('/reader/overgeared/344');
-    await page.waitForURL(/.*reader\/overgeared\/344/, { timeout: 10000 });
+    // Check current lastChapter from catalog to handle dynamic updates
+    const catalogRes = await page.request.get('http://localhost:8080/api/catalog/overgeared');
+    let lastCh = 344;
+    if (catalogRes.ok()) {
+      const data = await catalogRes.json();
+      if (data.lastChapter) lastCh = data.lastChapter;
+    }
+    await page.goto(`/reader/overgeared/${lastCh}`);
+    await page.waitForURL(new RegExp(`.*reader/overgeared/${lastCh}`), { timeout: 10000 });
 
     // Verify Next button is disabled
     const nextBtnAtLast = page.locator('button[title="Próximo Capítulo (Seta Direita)"]');
