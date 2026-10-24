@@ -1,4 +1,4 @@
-name: CI — Frontend Web Client (Angular 18)
+name: CI & Quality — Frontend Web Client (Angular 18)
 
 on:
   push:
@@ -11,12 +11,14 @@ on:
       - desenv
 
 jobs:
-  test-and-build:
-    name: Angular Test & Build
+  test-and-sonar:
+    name: Angular Test, Build & SonarQube Cloud
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -31,7 +33,12 @@ jobs:
       - name: Run Angular Unit Tests
         env:
           CHROME_BIN: /usr/bin/google-chrome
-        run: npm test
+        run: npm test -- --code-coverage
 
       - name: Build Production Application
         run: npm run build -- --configuration=production
+
+      - name: SonarQube Cloud Scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
