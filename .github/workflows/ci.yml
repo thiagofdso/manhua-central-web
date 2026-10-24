@@ -33,7 +33,7 @@ jobs:
       - name: Run Angular Unit Tests
         env:
           CHROME_BIN: /usr/bin/google-chrome
-        run: npm test -- --coverage
+        run: npm test -- --code-coverage
 
       - name: Build Production Application
         run: npm run build -- --configuration=production
