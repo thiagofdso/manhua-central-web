@@ -9,6 +9,7 @@ import { CanonicalManhua } from '../../core/models/catalog.model';
   selector: 'app-downloads-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule],
+  host: { class: 'block' },
   template: `
     @if (isOpen()) {
       <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">

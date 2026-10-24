@@ -7,6 +7,7 @@ import { IndexedDbService } from '../../core/services/indexed-db.service';
   selector: 'app-active-downloads-drawer',
   standalone: true,
   imports: [CommonModule],
+  host: { class: 'block' },
   template: `
     <!-- Floating Trigger Bubble (when drawer is closed) -->
     @if (!manager.isDrawerOpen() && manager.tasks().length > 0) {
