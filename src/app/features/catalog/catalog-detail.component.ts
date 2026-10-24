@@ -4,12 +4,14 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { CatalogService } from '../../core/services/catalog.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { LibraryService } from '../../core/services/library.service';
+import { RankingService } from '../../core/services/ranking.service';
 import { CanonicalManhua } from '../../core/models/catalog.model';
+import { StarRatingComponent } from '../../shared/components/star-rating.component';
 
 @Component({
   selector: 'app-catalog-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, StarRatingComponent],
   template: `
     <div class="min-h-screen bg-dark-950 text-slate-100 pb-20">
       <!-- App Shell Header -->
@@ -33,6 +35,9 @@ import { CanonicalManhua } from '../../core/models/catalog.model';
           <nav class="flex items-center space-x-4">
             <a routerLink="/catalog" class="text-sm text-slate-300 hover:text-white transition-colors">
               Catálogo
+            </a>
+            <a routerLink="/rankings" class="text-sm text-slate-300 hover:text-white transition-colors">
+              Rankings
             </a>
             <ng-container *ngIf="isAuthenticated(); else loginLink">
               <a routerLink="/library" class="text-sm text-slate-300 hover:text-white transition-colors">
@@ -156,6 +161,26 @@ import { CanonicalManhua } from '../../core/models/catalog.model';
                   </div>
                 </div>
 
+                <!-- Community Rating Widget -->
+                <div class="mt-4 flex flex-wrap items-center justify-between gap-3 p-4 bg-slate-900/60 rounded-2xl border border-slate-800">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold text-slate-300">Avaliação da Comunidade:</span>
+                    <app-star-rating
+                      [rating]="manhua()?.bayesianRating || 0"
+                      [totalVotes]="manhua()?.totalVotes || 0"
+                      [userRating]="userRating()"
+                      [interactive]="true"
+                      size="md"
+                      (rate)="onRate($event)"
+                    />
+                  </div>
+                  @if (ratingFeedback()) {
+                    <span class="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 animate-fade-in">
+                      {{ ratingFeedback() }}
+                    </span>
+                  }
+                </div>
+
                 <!-- Synopsis -->
                 <div class="mt-6">
                   <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Sinopse</h2>
@@ -220,11 +245,14 @@ export class CatalogDetailComponent implements OnInit {
   private catalogService = inject(CatalogService);
   private authService = inject(AuthService);
   private libraryService = inject(LibraryService);
+  private rankingService = inject(RankingService);
 
   manhua = signal<CanonicalManhua | null>(null);
   loading = signal<boolean>(false);
   error = signal<string | null>(null);
   addedToLibrary = signal<boolean>(false);
+  userRating = signal<number | null>(null);
+  ratingFeedback = signal<string | null>(null);
 
   chapters = computed<number[]>(() => {
     const m = this.manhua();
@@ -261,11 +289,46 @@ export class CatalogDetailComponent implements OnInit {
         this.loading.set(false);
         if (this.isAuthenticated()) {
           this.checkLibraryStatus(m.id);
+          this.checkUserRating(m.id);
         }
       },
       error: () => {
         this.error.set('Obra não encontrada no catálogo global.');
         this.loading.set(false);
+      }
+    });
+  }
+
+  private checkUserRating(canonicalId: number): void {
+    this.rankingService.getUserRating(canonicalId).subscribe({
+      next: (res) => {
+        if (res && res.score !== null) {
+          this.userRating.set(res.score);
+        }
+      }
+    });
+  }
+
+  onRate(score: number): void {
+    if (!this.isAuthenticated()) {
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    const m = this.manhua();
+    if (!m) return;
+
+    this.rankingService.submitRating(m.id, score).subscribe({
+      next: (updated) => {
+        this.userRating.set(score);
+        this.ratingFeedback.set(`Voto computado: ${score} ★`);
+        this.manhua.update((prev) => prev ? {
+          ...prev,
+          bayesianRating: updated.bayesianRating,
+          totalVotes: updated.totalVotes
+        } : null);
+
+        setTimeout(() => this.ratingFeedback.set(null), 3000);
       }
     });
   }

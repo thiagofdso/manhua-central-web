@@ -34,6 +34,9 @@ import { UserLibrary } from '../../core/models/library.model';
             <a routerLink="/catalog" routerLinkActive="text-brand-400 font-semibold" class="text-sm text-slate-300 hover:text-white transition-colors">
               Catálogo
             </a>
+            <a routerLink="/rankings" routerLinkActive="text-brand-400 font-semibold" class="text-sm text-slate-300 hover:text-white transition-colors">
+              Rankings
+            </a>
             <a routerLink="/library" routerLinkActive="text-brand-400 font-semibold" class="text-sm text-brand-400 font-semibold transition-colors">
               Biblioteca
             </a>
