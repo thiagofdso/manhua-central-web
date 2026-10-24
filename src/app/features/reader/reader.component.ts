@@ -37,6 +37,9 @@ import { ChapterImagesResponse } from '../../core/models/reader.model';
               <span>Capítulo {{ currentChapter() }}</span>
               <span *ngIf="response()?.lastChapter" class="text-slate-600">•</span>
               <span *ngIf="response()?.lastChapter">de {{ response()?.lastChapter }}</span>
+              <span *ngIf="response()?.isOffline" class="ml-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                Offline (IndexedDB)
+              </span>
             </div>
           </div>
 

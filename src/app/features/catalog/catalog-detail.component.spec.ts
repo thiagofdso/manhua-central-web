@@ -1,5 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, ActivatedRoute } from '@angular/router';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
 import { CatalogDetailComponent } from './catalog-detail.component';
@@ -49,6 +51,8 @@ describe('CatalogDetailComponent', () => {
       imports: [CatalogDetailComponent],
       providers: [
         provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
         {
           provide: ActivatedRoute,
           useValue: {

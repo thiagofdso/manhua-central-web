@@ -7,11 +7,12 @@ import { LibraryService } from '../../core/services/library.service';
 import { RankingService } from '../../core/services/ranking.service';
 import { CanonicalManhua } from '../../core/models/catalog.model';
 import { StarRatingComponent } from '../../shared/components/star-rating.component';
+import { DownloadsDialogComponent } from '../downloads/downloads-dialog.component';
 
 @Component({
   selector: 'app-catalog-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, StarRatingComponent],
+  imports: [CommonModule, RouterModule, StarRatingComponent, DownloadsDialogComponent],
   template: `
     <div class="min-h-screen bg-dark-950 text-slate-100 pb-20">
       <!-- App Shell Header -->
@@ -207,6 +208,19 @@ import { StarRatingComponent } from '../../shared/components/star-rating.compone
                   </svg>
                   <span>{{ addedToLibrary() ? 'Na Minha Biblioteca' : '+ Adicionar à Biblioteca' }}</span>
                 </button>
+
+                <button
+                  type="button"
+                  (click)="isDownloadsDialogOpen.set(true)"
+                  class="px-5 py-3 rounded-xl text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer flex items-center space-x-2 min-h-[44px]"
+                >
+                  <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <span>Baixar Capítulos</span>
+                </button>
               </div>
             </div>
           </div>
@@ -235,6 +249,14 @@ import { StarRatingComponent } from '../../shared/components/star-rating.compone
             </div>
           </div>
         </div>
+
+        <!-- Downloads Dialog Modal -->
+        <app-downloads-dialog
+          *ngIf="manhua()"
+          [manhua]="manhua()!"
+          [isOpen]="isDownloadsDialogOpen()"
+          (close)="isDownloadsDialogOpen.set(false)"
+        />
       </main>
     </div>
   `
@@ -253,6 +275,7 @@ export class CatalogDetailComponent implements OnInit {
   addedToLibrary = signal<boolean>(false);
   userRating = signal<number | null>(null);
   ratingFeedback = signal<string | null>(null);
+  isDownloadsDialogOpen = signal<boolean>(false);
 
   chapters = computed<number[]>(() => {
     const m = this.manhua();

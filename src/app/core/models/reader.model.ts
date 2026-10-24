@@ -12,4 +12,5 @@ export interface ChapterImagesResponse {
   lastChapter?: number;
   totalImages: number;
   images: ChapterImage[];
+  isOffline?: boolean;
 }
