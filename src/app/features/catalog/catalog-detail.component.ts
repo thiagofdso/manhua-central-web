@@ -1,8 +1,9 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { CatalogService } from '../../core/services/catalog.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { LibraryService } from '../../core/services/library.service';
 import { CanonicalManhua } from '../../core/models/catalog.model';
 
 @Component({
@@ -34,6 +35,9 @@ import { CanonicalManhua } from '../../core/models/catalog.model';
               Catálogo
             </a>
             <ng-container *ngIf="isAuthenticated(); else loginLink">
+              <a routerLink="/library" class="text-sm text-slate-300 hover:text-white transition-colors">
+                Biblioteca
+              </a>
               <a routerLink="/profile" class="text-sm text-slate-300 hover:text-white transition-colors">
                 Perfil
               </a>
@@ -211,8 +215,10 @@ import { CanonicalManhua } from '../../core/models/catalog.model';
 })
 export class CatalogDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private catalogService = inject(CatalogService);
   private authService = inject(AuthService);
+  private libraryService = inject(LibraryService);
 
   manhua = signal<CanonicalManhua | null>(null);
   loading = signal<boolean>(false);
@@ -252,6 +258,9 @@ export class CatalogDetailComponent implements OnInit {
       next: (m) => {
         this.manhua.set(m);
         this.loading.set(false);
+        if (this.isAuthenticated()) {
+          this.checkLibraryStatus(m.id);
+        }
       },
       error: () => {
         this.error.set('Obra não encontrada no catálogo global.');
@@ -260,7 +269,41 @@ export class CatalogDetailComponent implements OnInit {
     });
   }
 
+  private checkLibraryStatus(canonicalId: number): void {
+    if (this.libraryService.isInLibrary(canonicalId)) {
+      this.addedToLibrary.set(true);
+    } else {
+      this.libraryService.getLibrary().subscribe({
+        next: () => {
+          if (this.libraryService.isInLibrary(canonicalId)) {
+            this.addedToLibrary.set(true);
+          }
+        }
+      });
+    }
+  }
+
   addToLibrary(): void {
-    this.addedToLibrary.set(true);
+    if (!this.isAuthenticated()) {
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    const m = this.manhua();
+    if (!m) return;
+
+    this.libraryService.addToLibrary({
+      canonicalManhuaId: m.id,
+      currentChapter: 1,
+      isFavorite: false
+    }).subscribe({
+      next: () => {
+        this.addedToLibrary.set(true);
+      },
+      error: () => {
+        // If already in library, treat as added
+        this.addedToLibrary.set(true);
+      }
+    });
   }
 }

@@ -31,6 +31,9 @@ import { AuthService } from '../../core/auth/auth.service';
             <a routerLink="/catalog" class="text-sm font-medium text-slate-300 hover:text-white transition-colors">
               Catálogo
             </a>
+            <a routerLink="/library" class="text-sm font-medium text-slate-300 hover:text-white transition-colors">
+              Biblioteca
+            </a>
             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
               Sincronizado

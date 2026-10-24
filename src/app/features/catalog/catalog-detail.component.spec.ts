@@ -5,12 +5,14 @@ import { of } from 'rxjs';
 import { CatalogDetailComponent } from './catalog-detail.component';
 import { CatalogService } from '../../core/services/catalog.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { LibraryService } from '../../core/services/library.service';
 import { CanonicalManhua } from '../../core/models/catalog.model';
 
 describe('CatalogDetailComponent', () => {
   let component: CatalogDetailComponent;
   let fixture: ComponentFixture<CatalogDetailComponent>;
   let mockCatalogService: jasmine.SpyObj<CatalogService>;
+  let mockLibraryService: jasmine.SpyObj<LibraryService>;
 
   const mockManhua: CanonicalManhua = {
     id: 1,
@@ -34,6 +36,10 @@ describe('CatalogDetailComponent', () => {
     mockCatalogService = jasmine.createSpyObj('CatalogService', ['getBySlug']);
     mockCatalogService.getBySlug.and.returnValue(of(mockManhua));
 
+    mockLibraryService = jasmine.createSpyObj('LibraryService', ['getLibrary', 'addToLibrary', 'isInLibrary']);
+    mockLibraryService.isInLibrary.and.returnValue(false);
+    mockLibraryService.getLibrary.and.returnValue(of([]));
+
     await TestBed.configureTestingModule({
       imports: [CatalogDetailComponent],
       providers: [
@@ -45,6 +51,7 @@ describe('CatalogDetailComponent', () => {
           }
         },
         { provide: CatalogService, useValue: mockCatalogService },
+        { provide: LibraryService, useValue: mockLibraryService },
         { provide: AuthService, useValue: { isAuthenticated: () => false, currentUser: signal(null) } }
       ]
     }).compileComponents();

@@ -35,6 +35,9 @@ import { CanonicalManhua, CatalogFilter } from '../../core/models/catalog.model'
               Catálogo
             </a>
             <ng-container *ngIf="isAuthenticated(); else loginLink">
+              <a routerLink="/library" routerLinkActive="text-brand-400 font-semibold" class="text-sm text-slate-300 hover:text-white transition-colors">
+                Biblioteca
+              </a>
               <a routerLink="/profile" routerLinkActive="text-brand-400 font-semibold" class="text-sm text-slate-300 hover:text-white transition-colors">
                 Perfil
               </a>
