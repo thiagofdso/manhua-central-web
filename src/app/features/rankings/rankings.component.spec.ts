@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Router } from '@angular/router';
 import { of } from 'rxjs';
@@ -64,8 +65,10 @@ describe('RankingsComponent', () => {
     authServiceSpy.isAuthenticated.and.returnValue(true);
 
     await TestBed.configureTestingModule({
-      imports: [RankingsComponent, HttpClientTestingModule, RouterTestingModule],
+      imports: [RankingsComponent, RouterTestingModule],
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
         { provide: RankingService, useValue: rankingServiceSpy },
         { provide: AuthService, useValue: authServiceSpy },
         { provide: LibraryService, useValue: libraryServiceSpy }

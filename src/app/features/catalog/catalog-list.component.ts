@@ -5,11 +5,12 @@ import { FormsModule } from '@angular/forms';
 import { CatalogService } from '../../core/services/catalog.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { CanonicalManhua, CatalogFilter } from '../../core/models/catalog.model';
+import { NotificationBellComponent } from '../notifications/notification-bell.component';
 
 @Component({
   selector: 'app-catalog-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, NotificationBellComponent],
   template: `
     <div class="min-h-screen bg-dark-950 text-slate-100 pb-16">
       <!-- App Shell Header -->
@@ -41,6 +42,7 @@ import { CanonicalManhua, CatalogFilter } from '../../core/models/catalog.model'
               <a routerLink="/library" routerLinkActive="text-brand-400 font-semibold" class="text-sm text-slate-300 hover:text-white transition-colors">
                 Biblioteca
               </a>
+              <app-notification-bell></app-notification-bell>
               <a routerLink="/profile" routerLinkActive="text-brand-400 font-semibold" class="text-sm text-slate-300 hover:text-white transition-colors">
                 Perfil
               </a>

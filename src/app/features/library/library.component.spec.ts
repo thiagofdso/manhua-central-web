@@ -1,5 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { of } from 'rxjs';
 import { LibraryComponent } from './library.component';
 import { LibraryService } from '../../core/services/library.service';
@@ -94,6 +96,8 @@ describe('LibraryComponent', () => {
       imports: [LibraryComponent],
       providers: [
         provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
         { provide: LibraryService, useValue: libraryServiceSpy },
         { provide: AuthService, useValue: authServiceMock }
       ]

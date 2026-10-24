@@ -1,5 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
 import { CatalogListComponent } from './catalog-list.component';
@@ -57,6 +59,8 @@ describe('CatalogListComponent', () => {
       imports: [CatalogListComponent],
       providers: [
         provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
         { provide: CatalogService, useValue: mockCatalogService },
         { provide: AuthService, useValue: { isAuthenticated: () => false, currentUser: signal(null) } }
       ]

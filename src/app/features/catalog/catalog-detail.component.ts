@@ -8,11 +8,12 @@ import { RankingService } from '../../core/services/ranking.service';
 import { CanonicalManhua } from '../../core/models/catalog.model';
 import { StarRatingComponent } from '../../shared/components/star-rating.component';
 import { DownloadsDialogComponent } from '../downloads/downloads-dialog.component';
+import { NotificationBellComponent } from '../notifications/notification-bell.component';
 
 @Component({
   selector: 'app-catalog-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, StarRatingComponent, DownloadsDialogComponent],
+  imports: [CommonModule, RouterModule, StarRatingComponent, DownloadsDialogComponent, NotificationBellComponent],
   template: `
     <div class="min-h-screen bg-dark-950 text-slate-100 pb-20">
       <!-- App Shell Header -->
@@ -44,6 +45,7 @@ import { DownloadsDialogComponent } from '../downloads/downloads-dialog.componen
               <a routerLink="/library" class="text-sm text-slate-300 hover:text-white transition-colors">
                 Biblioteca
               </a>
+              <app-notification-bell></app-notification-bell>
               <a routerLink="/profile" class="text-sm text-slate-300 hover:text-white transition-colors">
                 Perfil
               </a>

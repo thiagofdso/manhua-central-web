@@ -5,11 +5,12 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-
 import { LibraryService } from '../../core/services/library.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { UserLibrary } from '../../core/models/library.model';
+import { NotificationBellComponent } from '../notifications/notification-bell.component';
 
 @Component({
   selector: 'app-library',
   standalone: true,
-  imports: [CommonModule, RouterModule, DragDropModule],
+  imports: [CommonModule, RouterModule, DragDropModule, NotificationBellComponent],
   template: `
     <div class="min-h-screen bg-dark-950 text-slate-100 pb-20">
       <!-- App Shell Header -->
@@ -40,6 +41,7 @@ import { UserLibrary } from '../../core/models/library.model';
             <a routerLink="/library" routerLinkActive="text-brand-400 font-semibold" class="text-sm text-brand-400 font-semibold transition-colors">
               Biblioteca
             </a>
+            <app-notification-bell></app-notification-bell>
             <a routerLink="/profile" routerLinkActive="text-brand-400 font-semibold" class="text-sm text-slate-300 hover:text-white transition-colors">
               Perfil
             </a>

@@ -7,11 +7,12 @@ import { LibraryService } from '../../core/services/library.service';
 import { RankedManhua, RankingType } from '../../core/models/ranking.model';
 import { CanonicalManhua } from '../../core/models/catalog.model';
 import { StarRatingComponent } from '../../shared/components/star-rating.component';
+import { NotificationBellComponent } from '../notifications/notification-bell.component';
 
 @Component({
   selector: 'app-rankings',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, StarRatingComponent],
+  imports: [CommonModule, RouterLink, RouterLinkActive, StarRatingComponent, NotificationBellComponent],
   template: `
     <div class="min-h-screen bg-[#090d16] text-slate-100 flex flex-col font-sans">
       <!-- Header / App Shell Navigation -->
@@ -43,6 +44,7 @@ import { StarRatingComponent } from '../../shared/components/star-rating.compone
               <a routerLink="/library" routerLinkActive="text-brand-400 font-semibold" class="text-sm text-slate-300 hover:text-white transition-colors">
                 Biblioteca
               </a>
+              <app-notification-bell></app-notification-bell>
               <a routerLink="/profile" routerLinkActive="text-brand-400 font-semibold" class="text-sm text-slate-300 hover:text-white transition-colors">
                 Perfil
               </a>
