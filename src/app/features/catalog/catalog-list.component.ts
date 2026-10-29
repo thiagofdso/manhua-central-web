@@ -4,9 +4,11 @@ import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CatalogService } from '../../core/services/catalog.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { ImportService } from '../../core/services/import.service';
 import { CanonicalManhua, CatalogFilter } from '../../core/models/catalog.model';
 import { NotificationBellComponent } from '../notifications/notification-bell.component';
 import { ImportDialogComponent } from './import-dialog.component';
+import { getProxiedCoverUrl, handleCoverError } from '../../core/utils/image.util';
 
 @Component({
   selector: 'app-catalog-list',
@@ -70,7 +72,6 @@ import { ImportDialogComponent } from './import-dialog.component';
             </p>
           </div>
           <button
-            *ngIf="isAuthenticated()"
             type="button"
             (click)="openImportModal()"
             class="self-start sm:self-auto px-5 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs sm:text-sm font-semibold transition-colors shadow-lg shadow-brand-500/20 flex items-center gap-2 min-h-[44px] cursor-pointer"
@@ -81,7 +82,7 @@ import { ImportDialogComponent } from './import-dialog.component';
         </div>
 
         <!-- Filter & Search Bar -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 mb-8 shadow-xl">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 mb-8 shadow-xl space-y-4">
           <div class="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
             <!-- Search Input -->
             <div class="relative flex-1">
@@ -99,50 +100,62 @@ import { ImportDialogComponent } from './import-dialog.component';
               />
             </div>
 
-            <!-- Sort Select -->
-            <div class="flex items-center space-x-2">
-              <label for="sortSelect" class="text-xs text-slate-400 font-medium whitespace-nowrap">Ordenar por:</label>
-              <select
-                id="sortSelect"
-                [ngModel]="selectedSort()"
-                (ngModelChange)="onSortChange($event)"
-                aria-label="Ordenar por"
-                class="bg-dark-850 border border-slate-800 text-slate-200 text-sm rounded-xl px-3 py-2.5 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-colors cursor-pointer"
-              >
-                <option value="updated">Mais Recentes</option>
-                <option value="views">Mais Visualizados</option>
-                <option value="rating">Melhor Avaliados</option>
-                <option value="title">Título (A-Z)</option>
-              </select>
+            <!-- Controls (Status & Sort) -->
+            <div class="flex flex-wrap items-center gap-3">
+              <!-- Status Select -->
+              <div class="flex items-center space-x-2">
+                <label for="statusSelect" class="text-xs text-slate-400 font-medium whitespace-nowrap">Status:</label>
+                <select
+                  id="statusSelect"
+                  [ngModel]="selectedStatus()"
+                  (ngModelChange)="onStatusChange($event)"
+                  aria-label="Filtrar por status"
+                  class="bg-dark-850 border border-slate-800 text-slate-200 text-sm rounded-xl px-3 py-2.5 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-colors cursor-pointer"
+                >
+                  <option value="all">Todos os Status</option>
+                  <option value="active">Em Andamento</option>
+                  <option value="hiatus">Em Hiato</option>
+                </select>
+              </div>
+
+              <!-- Sort Select -->
+              <div class="flex items-center space-x-2">
+                <label for="sortSelect" class="text-xs text-slate-400 font-medium whitespace-nowrap">Ordenar por:</label>
+                <select
+                  id="sortSelect"
+                  [ngModel]="selectedSort()"
+                  (ngModelChange)="onSortChange($event)"
+                  aria-label="Ordenar por"
+                  class="bg-dark-850 border border-slate-800 text-slate-200 text-sm rounded-xl px-3 py-2.5 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-colors cursor-pointer"
+                >
+                  <option value="updated">Mais Recentes</option>
+                  <option value="views">Mais Visualizados</option>
+                  <option value="rating">Melhor Avaliados</option>
+                  <option value="title">Título (A-Z)</option>
+                </select>
+              </div>
             </div>
           </div>
 
           <!-- Domain Filter Badges (Pills) -->
-          <div class="mt-4 pt-4 border-t border-slate-800/80 flex items-center gap-2 overflow-x-auto pb-1">
-            <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider mr-1">Fonte:</span>
+          <div class="pt-3 border-t border-slate-800/80 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+            <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider mr-1 shrink-0">Fonte:</span>
             <button
               type="button"
               (click)="onDomainChange('')"
               [class]="selectedDomain() === '' ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20' : 'bg-dark-850 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-800'"
-              class="px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer whitespace-nowrap min-h-[32px]"
+              class="px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer whitespace-nowrap min-h-[32px] shrink-0"
             >
               Todos ({{ total() }})
             </button>
             <button
+              *ngFor="let d of availableDomains()"
               type="button"
-              (click)="onDomainChange('asurascans.com')"
-              [class]="selectedDomain() === 'asurascans.com' ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20' : 'bg-dark-850 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-800'"
-              class="px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer whitespace-nowrap min-h-[32px]"
+              (click)="onDomainChange(d.domain)"
+              [class]="selectedDomain() === d.domain ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20' : 'bg-dark-850 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-800'"
+              class="px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer whitespace-nowrap min-h-[32px] shrink-0"
             >
-              Asura Scans
-            </button>
-            <button
-              type="button"
-              (click)="onDomainChange('ravenscans.org')"
-              [class]="selectedDomain() === 'ravenscans.org' ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20' : 'bg-dark-850 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-800'"
-              class="px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer whitespace-nowrap min-h-[32px]"
-            >
-              RavenScans
+              {{ d.name }}
             </button>
           </div>
         </div>
@@ -171,13 +184,14 @@ import { ImportDialogComponent } from './import-dialog.component';
             <div class="relative aspect-[3/4] bg-dark-950 overflow-hidden">
               <img
                 *ngIf="item.coverUrl"
-                [src]="item.coverUrl"
+                [src]="getCoverUrl(item.coverUrl)"
+                (error)="onImageError($event, item.coverUrl)"
                 [alt]="item.title"
                 loading="lazy"
                 referrerpolicy="no-referrer"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
-              <div *ngIf="!item.coverUrl" class="w-full h-full flex items-center justify-center bg-dark-850 text-slate-500 text-sm font-semibold">
+              <div class="cover-fallback w-full h-full items-center justify-center bg-dark-850 text-slate-500 text-sm font-semibold" [style.display]="item.coverUrl ? 'none' : 'flex'">
                 Sem Capa
               </div>
 
@@ -276,6 +290,7 @@ import { ImportDialogComponent } from './import-dialog.component';
 export class CatalogListComponent implements OnInit {
   private catalogService = inject(CatalogService);
   private authService = inject(AuthService);
+  private importService = inject(ImportService);
 
   showImportModal = signal<boolean>(false);
   manhuas = signal<CanonicalManhua[]>([]);
@@ -285,9 +300,25 @@ export class CatalogListComponent implements OnInit {
   totalPages = signal<number>(1);
   searchQuery = signal<string>('');
   selectedDomain = signal<string>('');
+  selectedStatus = signal<string>('all');
   selectedSort = signal<string>('updated');
   loading = signal<boolean>(false);
   error = signal<string | null>(null);
+
+  availableDomains = signal<{ domain: string; name: string }[]>([
+    { domain: 'arenascan.com', name: 'ArenaScan' },
+    { domain: 'asurascans.com', name: 'Asura Scans' },
+    { domain: 'comix.to', name: 'Comix' },
+    { domain: 'mangafire.to', name: 'MangaFire' },
+    { domain: 'mangak.io', name: 'MangaK' },
+    { domain: 'manhuatop.org', name: 'ManhuaTop' },
+    { domain: 'manhuaus.com', name: 'ManhuaUS' },
+    { domain: 'mgeko.cc', name: 'MGeko' },
+    { domain: 'ravenscans.org', name: 'RavenScans' }
+  ]);
+
+  getCoverUrl = getProxiedCoverUrl;
+  onImageError = handleCoverError;
 
   isAuthenticated(): boolean {
     return this.authService.isAuthenticated();
@@ -295,15 +326,40 @@ export class CatalogListComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadCatalog();
+    this.loadDomains();
+  }
+
+  loadDomains(): void {
+    this.importService.getDomains().subscribe({
+      next: (domains) => {
+        const list = domains
+          .filter(d => d.domain !== 'all' && d.supported)
+          .map(d => ({ domain: d.domain, name: d.name }));
+        if (list.length > 0) {
+          this.availableDomains.set(list);
+        }
+      },
+      error: () => {
+        // Preserva a lista estática em caso de falha
+      }
+    });
   }
 
   loadCatalog(): void {
     this.loading.set(true);
     this.error.set(null);
 
+    let isHiatus: boolean | undefined = undefined;
+    if (this.selectedStatus() === 'active') {
+      isHiatus = false;
+    } else if (this.selectedStatus() === 'hiatus') {
+      isHiatus = true;
+    }
+
     const filter: CatalogFilter = {
       query: this.searchQuery(),
       domain: this.selectedDomain() || undefined,
+      isHiatus: isHiatus,
       sortBy: this.selectedSort() as any,
       page: this.page(),
       pageSize: this.pageSize()
@@ -336,6 +392,12 @@ export class CatalogListComponent implements OnInit {
     this.loadCatalog();
   }
 
+  onStatusChange(status: string): void {
+    this.selectedStatus.set(status);
+    this.page.set(1);
+    this.loadCatalog();
+  }
+
   onSortChange(sort: string): void {
     this.selectedSort.set(sort);
     this.page.set(1);
@@ -353,6 +415,7 @@ export class CatalogListComponent implements OnInit {
   resetFilters(): void {
     this.searchQuery.set('');
     this.selectedDomain.set('');
+    this.selectedStatus.set('all');
     this.selectedSort.set('updated');
     this.page.set(1);
     this.loadCatalog();

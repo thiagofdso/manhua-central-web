@@ -6,6 +6,7 @@ import { LibraryService } from '../../core/services/library.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { UserLibrary } from '../../core/models/library.model';
 import { NotificationBellComponent } from '../notifications/notification-bell.component';
+import { getProxiedCoverUrl, handleCoverError } from '../../core/utils/image.util';
 
 @Component({
   selector: 'app-library',
@@ -176,17 +177,21 @@ import { NotificationBellComponent } from '../notifications/notification-bell.co
                   <div class="w-12 h-16 rounded-xl overflow-hidden bg-dark-950 border border-slate-800 flex-shrink-0 relative">
                     <img
                       *ngIf="item.canonicalManhua?.coverUrl"
-                      [src]="item.canonicalManhua?.coverUrl"
+                      [src]="getCoverUrl(item.canonicalManhua?.coverUrl)"
+                      (error)="onImageError($event, item.canonicalManhua?.coverUrl)"
                       [alt]="item.canonicalManhua?.title"
                       referrerpolicy="no-referrer"
                       class="w-full h-full object-cover"
                     />
+                    <div class="cover-fallback w-full h-full items-center justify-center bg-dark-850 text-slate-500 text-[10px] font-semibold" [style.display]="item.canonicalManhua?.coverUrl ? 'none' : 'flex'">
+                      Sem capa
+                    </div>
                   </div>
 
                   <!-- Title & Domain -->
                   <div class="min-w-0 flex-1">
                     <a
-                      [routerLink]="['/catalog', item.canonicalManhua?.slug]"
+                      [routerLink]="['/reader', item.canonicalManhua?.slug, item.currentChapter]"
                       class="text-sm sm:text-base font-bold text-white hover:text-brand-300 truncate block transition-colors"
                     >
                       {{ item.canonicalManhua?.title || 'Obra Canônica' }}
@@ -239,6 +244,17 @@ import { NotificationBellComponent } from '../notifications/notification-bell.co
                   </div>
 
                   <!-- Star Toggle (RN-04.2) -->
+                  <a
+                    [routerLink]="['/catalog', item.canonicalManhua?.slug]"
+                    class="p-2.5 rounded-xl text-slate-400 hover:text-brand-300 hover:bg-brand-500/10 border border-slate-800 hover:border-brand-500/30 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                    [attr.aria-label]="'Detalhes de ' + (item.canonicalManhua?.title || 'obra')"
+                    title="Ver detalhes"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 12s3.5-7 9.75-7 9.75 7 9.75 7-3.5 7-9.75 7-9.75-7-9.75-7z" />
+                      <circle cx="12" cy="12" r="3" stroke-width="2" />
+                    </svg>
+                  </a>
                   <button
                     type="button"
                     (click)="toggleFavorite(item)"
@@ -317,17 +333,21 @@ import { NotificationBellComponent } from '../notifications/notification-bell.co
                   <div class="w-12 h-16 rounded-xl overflow-hidden bg-slate-900 border border-slate-800 flex-shrink-0 relative">
                     <img
                       *ngIf="item.canonicalManhua?.coverUrl"
-                      [src]="item.canonicalManhua?.coverUrl"
+                      [src]="getCoverUrl(item.canonicalManhua?.coverUrl)"
+                      (error)="onImageError($event, item.canonicalManhua?.coverUrl)"
                       [alt]="item.canonicalManhua?.title"
                       referrerpolicy="no-referrer"
                       class="w-full h-full object-cover"
                     />
+                    <div class="cover-fallback w-full h-full items-center justify-center bg-dark-850 text-slate-500 text-[10px] font-semibold" [style.display]="item.canonicalManhua?.coverUrl ? 'none' : 'flex'">
+                      Sem capa
+                    </div>
                   </div>
 
                   <!-- Title & Domain -->
                   <div class="min-w-0 flex-1">
                     <a
-                      [routerLink]="['/catalog', item.canonicalManhua?.slug]"
+                      [routerLink]="['/reader', item.canonicalManhua?.slug, item.currentChapter]"
                       class="text-sm sm:text-base font-bold text-white hover:text-brand-300 truncate block transition-colors"
                     >
                       {{ item.canonicalManhua?.title || 'Obra Canônica' }}
@@ -380,6 +400,17 @@ import { NotificationBellComponent } from '../notifications/notification-bell.co
                   </div>
 
                   <!-- Star Toggle (RN-04.2) -->
+                  <a
+                    [routerLink]="['/catalog', item.canonicalManhua?.slug]"
+                    class="p-2.5 rounded-xl text-slate-400 hover:text-brand-300 hover:bg-brand-500/10 border border-slate-800 hover:border-brand-500/30 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                    [attr.aria-label]="'Detalhes de ' + (item.canonicalManhua?.title || 'obra')"
+                    title="Ver detalhes"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 12s3.5-7 9.75-7 9.75 7 9.75 7-3.5 7-9.75 7-9.75-7-9.75-7z" />
+                      <circle cx="12" cy="12" r="3" stroke-width="2" />
+                    </svg>
+                  </a>
                   <button
                     type="button"
                     (click)="toggleFavorite(item)"
@@ -419,6 +450,9 @@ export class LibraryComponent implements OnInit {
   // Reactive signals reflecting local state
   favoritesList = signal<UserLibrary[]>([]);
   regularsList = signal<UserLibrary[]>([]);
+
+  getCoverUrl = getProxiedCoverUrl;
+  onImageError = handleCoverError;
 
   totalCount = computed(() => this.favoritesList().length + this.regularsList().length);
 

@@ -7,12 +7,14 @@ import { of } from 'rxjs';
 import { CatalogListComponent } from './catalog-list.component';
 import { CatalogService } from '../../core/services/catalog.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { ImportService } from '../../core/services/import.service';
 import { CatalogResponse } from '../../core/models/catalog.model';
 
 describe('CatalogListComponent', () => {
   let component: CatalogListComponent;
   let fixture: ComponentFixture<CatalogListComponent>;
   let mockCatalogService: jasmine.SpyObj<CatalogService>;
+  let mockImportService: jasmine.SpyObj<ImportService>;
 
   const mockResponse: CatalogResponse = {
     items: [
@@ -55,6 +57,13 @@ describe('CatalogListComponent', () => {
     mockCatalogService = jasmine.createSpyObj('CatalogService', ['getCatalog']);
     mockCatalogService.getCatalog.and.returnValue(of(mockResponse));
 
+    mockImportService = jasmine.createSpyObj('ImportService', ['getDomains']);
+    mockImportService.getDomains.and.returnValue(of([
+      { domain: 'all', name: 'Todos (Geral)', supported: true },
+      { domain: 'asurascans.com', name: 'Asura Scans', supported: true },
+      { domain: 'mangafire.to', name: 'MangaFire', supported: true }
+    ]));
+
     await TestBed.configureTestingModule({
       imports: [CatalogListComponent],
       providers: [
@@ -62,6 +71,7 @@ describe('CatalogListComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: CatalogService, useValue: mockCatalogService },
+        { provide: ImportService, useValue: mockImportService },
         { provide: AuthService, useValue: { isAuthenticated: () => false, currentUser: signal(null) } }
       ]
     }).compileComponents();
@@ -76,13 +86,28 @@ describe('CatalogListComponent', () => {
     expect(mockCatalogService.getCatalog).toHaveBeenCalled();
     expect(component.manhuas().length).toBe(2);
     expect(component.manhuas()[0].title).toBe('Overgeared');
+    expect(mockImportService.getDomains).toHaveBeenCalled();
   });
 
   it('should filter by domain when domain button is clicked', () => {
-    component.onDomainChange('asurascans.com');
-    expect(component.selectedDomain()).toBe('asurascans.com');
+    component.onDomainChange('mangafire.to');
+    expect(component.selectedDomain()).toBe('mangafire.to');
     expect(mockCatalogService.getCatalog).toHaveBeenCalledWith(jasmine.objectContaining({
-      domain: 'asurascans.com'
+      domain: 'mangafire.to'
+    }));
+  });
+
+  it('should filter by status when status select changes', () => {
+    component.onStatusChange('active');
+    expect(component.selectedStatus()).toBe('active');
+    expect(mockCatalogService.getCatalog).toHaveBeenCalledWith(jasmine.objectContaining({
+      isHiatus: false
+    }));
+
+    component.onStatusChange('hiatus');
+    expect(component.selectedStatus()).toBe('hiatus');
+    expect(mockCatalogService.getCatalog).toHaveBeenCalledWith(jasmine.objectContaining({
+      isHiatus: true
     }));
   });
 
@@ -92,6 +117,19 @@ describe('CatalogListComponent', () => {
     expect(mockCatalogService.getCatalog).toHaveBeenCalledWith(jasmine.objectContaining({
       query: 'pig'
     }));
+  });
+
+  it('should reset all filters and reload catalog', () => {
+    component.searchQuery.set('test');
+    component.selectedDomain.set('comix.to');
+    component.selectedStatus.set('hiatus');
+
+    component.resetFilters();
+
+    expect(component.searchQuery()).toBe('');
+    expect(component.selectedDomain()).toBe('');
+    expect(component.selectedStatus()).toBe('all');
+    expect(mockCatalogService.getCatalog).toHaveBeenCalled();
   });
 
   it('should toggle import modal state and reload catalog when imported', () => {

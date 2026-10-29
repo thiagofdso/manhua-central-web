@@ -1,13 +1,16 @@
-import { Component, OnInit, EventEmitter, Output, inject, signal } from '@angular/core';
+import { Component, OnInit, EventEmitter, Output, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule, Router } from '@angular/router';
 import { ImportService } from '../../core/services/import.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { ImportDomain, ImportAnnotatedItem } from '../../core/models/import.model';
+import { getProxiedCoverUrl, handleCoverError } from '../../core/utils/image.util';
 
 @Component({
   selector: 'app-import-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
@@ -86,20 +89,52 @@ import { ImportDomain, ImportAnnotatedItem } from '../../core/models/import.mode
             </div>
           </div>
 
-          <!-- Bulk Selection Bar -->
-          <div *ngIf="items().length > 0" class="flex items-center justify-between bg-dark-850 border border-slate-800 px-4 py-2.5 rounded-xl">
-            <label class="flex items-center space-x-2.5 cursor-pointer text-xs font-medium text-slate-300 min-h-[32px]">
-              <input
-                type="checkbox"
-                [checked]="isAllSelected()"
-                (change)="toggleSelectAll($event)"
-                class="w-4 h-4 rounded bg-slate-800 border-slate-700 text-brand-600 focus:ring-brand-500/40"
-              />
-              <span>Selecionar todas as obras desta página</span>
-            </label>
-            <span class="text-xs font-semibold text-brand-400">
-              {{ selectedItems().size }} selecionada(s)
-            </span>
+          <!-- Filter Tabs & Bulk Selection Bar -->
+          <div *ngIf="items().length > 0" class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-dark-850 border border-slate-800 px-4 py-2.5 rounded-xl">
+            <!-- Filter by Status -->
+            <div class="flex items-center space-x-1.5 text-xs">
+              <span class="text-slate-400 font-semibold uppercase tracking-wider text-[10px] mr-1">Filtro:</span>
+              <button
+                type="button"
+                (click)="onFilterStatusChange('all')"
+                [class]="filterStatus() === 'all' ? 'bg-brand-600 text-white shadow-sm' : 'bg-slate-800/80 text-slate-300 hover:text-white border border-slate-700/50'"
+                class="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+              >
+                Todas ({{ items().length }})
+              </button>
+              <button
+                type="button"
+                (click)="onFilterStatusChange('new')"
+                [class]="filterStatus() === 'new' ? 'bg-brand-600 text-white shadow-sm' : 'bg-slate-800/80 text-slate-300 hover:text-white border border-slate-700/50'"
+                class="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+              >
+                Novas
+              </button>
+              <button
+                type="button"
+                (click)="onFilterStatusChange('in_catalog')"
+                [class]="filterStatus() === 'in_catalog' ? 'bg-brand-600 text-white shadow-sm' : 'bg-slate-800/80 text-slate-300 hover:text-white border border-slate-700/50'"
+                class="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+              >
+                No Catálogo
+              </button>
+            </div>
+
+            <!-- Bulk Selection Checkbox -->
+            <div class="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800">
+              <label class="flex items-center space-x-2.5 cursor-pointer text-xs font-medium text-slate-300 min-h-[32px]">
+                <input
+                  type="checkbox"
+                  [checked]="isAllSelected()"
+                  (change)="toggleSelectAll($event)"
+                  class="w-4 h-4 rounded bg-slate-800 border-slate-700 text-brand-600 focus:ring-brand-500/40"
+                />
+                <span>Selecionar todas</span>
+              </label>
+              <span class="text-xs font-semibold text-brand-400">
+                {{ selectedItems().size }} selecionada(s)
+              </span>
+            </div>
           </div>
         </div>
 
@@ -112,19 +147,27 @@ import { ImportDomain, ImportAnnotatedItem } from '../../core/models/import.mode
           </div>
 
           <!-- Error State -->
-          <div *ngIf="!loading() && error()" class="p-4 bg-red-950/40 border border-red-900/60 rounded-xl text-red-200 text-xs">
-            {{ error() }}
+          <div *ngIf="!loading() && error()" class="p-4 bg-red-950/40 border border-red-900/60 rounded-xl text-red-200 text-xs flex items-center justify-between gap-3">
+            <span>{{ error() }}</span>
+            <a
+              *ngIf="!isUserAuthenticated()"
+              routerLink="/login"
+              (click)="close(false)"
+              class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-semibold text-xs transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
+            >
+              Fazer Login
+            </a>
           </div>
 
           <!-- Empty State -->
-          <div *ngIf="!loading() && !error() && items().length === 0" class="py-16 text-center text-slate-400">
-            <p class="text-sm font-semibold text-slate-300">Nenhuma obra encontrada nesta página</p>
-            <p class="text-xs mt-1 text-slate-500">Tente buscar por outro termo ou selecione outra plataforma.</p>
+          <div *ngIf="!loading() && !error() && displayedItems().length === 0" class="py-16 text-center text-slate-400">
+            <p class="text-sm font-semibold text-slate-300">Nenhuma obra encontrada nesta página com este filtro</p>
+            <p class="text-xs mt-1 text-slate-500">Tente alternar o filtro ou buscar por outro termo.</p>
           </div>
 
           <!-- Items Rows -->
           <div
-            *ngFor="let item of items()"
+            *ngFor="let item of displayedItems()"
             class="bg-dark-850/80 border border-slate-800/80 hover:border-slate-700/80 rounded-xl p-3 flex items-center gap-3.5 transition-colors"
           >
             <!-- Checkbox -->
@@ -142,7 +185,8 @@ import { ImportDomain, ImportAnnotatedItem } from '../../core/models/import.mode
             <div class="w-12 h-16 rounded-lg bg-dark-950 border border-slate-800 overflow-hidden flex-shrink-0 flex items-center justify-center">
               <img
                 *ngIf="item.coverUrl"
-                [src]="item.coverUrl"
+                [src]="getCoverUrl(item.coverUrl)"
+                (error)="onImageError($event, item.coverUrl)"
                 [alt]="item.title"
                 loading="lazy"
                 referrerpolicy="no-referrer"
@@ -227,7 +271,10 @@ import { ImportDomain, ImportAnnotatedItem } from '../../core/models/import.mode
   `
 })
 export class ImportDialogComponent implements OnInit {
+  getCoverUrl = getProxiedCoverUrl;
+  onImageError = handleCoverError;
   private importService = inject(ImportService);
+  private authService = inject(AuthService);
 
   @Output() closed = new EventEmitter<boolean>();
 
@@ -242,6 +289,24 @@ export class ImportDialogComponent implements OnInit {
   loading = signal<boolean>(false);
   importing = signal<boolean>(false);
   error = signal<string | null>(null);
+
+  filterStatus = signal<'all' | 'new' | 'in_catalog'>('all');
+
+  displayedItems = computed(() => {
+    const status = this.filterStatus();
+    const list = this.items();
+    if (status === 'new') {
+      return list.filter(i => !i.alreadyInLibrary);
+    }
+    if (status === 'in_catalog') {
+      return list.filter(i => i.alreadyInCatalog);
+    }
+    return list;
+  });
+
+  onFilterStatusChange(status: 'all' | 'new' | 'in_catalog'): void {
+    this.filterStatus.set(status);
+  }
 
   ngOnInit(): void {
     this.loadDomains();
@@ -315,7 +380,7 @@ export class ImportDialogComponent implements OnInit {
   }
 
   isAllSelected(): boolean {
-    const selectable = this.items().filter(i => !i.alreadyInLibrary);
+    const selectable = this.displayedItems().filter(i => !i.alreadyInLibrary);
     if (selectable.length === 0) return false;
     return selectable.every(i => this.isSelected(i));
   }
@@ -323,7 +388,7 @@ export class ImportDialogComponent implements OnInit {
   toggleSelectAll(event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
     const map = new Map(this.selectedItems());
-    const selectable = this.items().filter(i => !i.alreadyInLibrary);
+    const selectable = this.displayedItems().filter(i => !i.alreadyInLibrary);
 
     if (checked) {
       selectable.forEach(i => map.set(i.slug || i.title, i));
@@ -333,9 +398,18 @@ export class ImportDialogComponent implements OnInit {
     this.selectedItems.set(map);
   }
 
+  isUserAuthenticated(): boolean {
+    return this.authService.isAuthenticated();
+  }
+
   submitImport(): void {
     const itemsToImport = Array.from(this.selectedItems().values());
     if (itemsToImport.length === 0) return;
+
+    if (!this.authService.isAuthenticated()) {
+      this.error.set('É necessário estar conectado à sua conta para importar obras para a biblioteca.');
+      return;
+    }
 
     this.importing.set(true);
     this.error.set(null);

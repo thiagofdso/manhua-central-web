@@ -9,6 +9,7 @@ import { CanonicalManhua } from '../../core/models/catalog.model';
 import { StarRatingComponent } from '../../shared/components/star-rating.component';
 import { DownloadsDialogComponent } from '../downloads/downloads-dialog.component';
 import { NotificationBellComponent } from '../notifications/notification-bell.component';
+import { getProxiedCoverUrl, handleCoverError } from '../../core/utils/image.util';
 
 @Component({
   selector: 'app-catalog-detail',
@@ -96,12 +97,13 @@ import { NotificationBellComponent } from '../notifications/notification-bell.co
             <div class="w-full sm:w-64 md:w-72 flex-shrink-0 mx-auto md:mx-0 aspect-[3/4] bg-dark-950 rounded-2xl overflow-hidden border border-slate-800 shadow-xl relative">
               <img
                 *ngIf="manhua()?.coverUrl"
-                [src]="manhua()?.coverUrl"
+                [src]="getCoverUrl(manhua()?.coverUrl)"
+                (error)="onImageError($event, manhua()?.coverUrl)"
                 [alt]="manhua()?.title"
                 referrerpolicy="no-referrer"
                 class="w-full h-full object-cover"
               />
-              <div *ngIf="!manhua()?.coverUrl" class="w-full h-full flex items-center justify-center bg-dark-850 text-slate-500 font-bold">
+              <div class="cover-fallback w-full h-full items-center justify-center bg-dark-850 text-slate-500 font-bold" [style.display]="manhua()?.coverUrl ? 'none' : 'flex'">
                 Sem Capa
               </div>
             </div>
@@ -278,6 +280,9 @@ export class CatalogDetailComponent implements OnInit {
   userRating = signal<number | null>(null);
   ratingFeedback = signal<string | null>(null);
   isDownloadsDialogOpen = signal<boolean>(false);
+
+  getCoverUrl = getProxiedCoverUrl;
+  onImageError = handleCoverError;
 
   chapters = computed<number[]>(() => {
     const m = this.manhua();
