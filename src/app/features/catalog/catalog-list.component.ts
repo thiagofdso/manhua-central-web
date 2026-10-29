@@ -6,11 +6,12 @@ import { CatalogService } from '../../core/services/catalog.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { CanonicalManhua, CatalogFilter } from '../../core/models/catalog.model';
 import { NotificationBellComponent } from '../notifications/notification-bell.component';
+import { ImportDialogComponent } from './import-dialog.component';
 
 @Component({
   selector: 'app-catalog-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, NotificationBellComponent],
+  imports: [CommonModule, RouterModule, FormsModule, NotificationBellComponent, ImportDialogComponent],
   template: `
     <div class="min-h-screen bg-dark-950 text-slate-100 pb-16">
       <!-- App Shell Header -->
@@ -59,13 +60,24 @@ import { NotificationBellComponent } from '../notifications/notification-bell.co
       <!-- Main Container -->
       <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
         <!-- Hero Title Section -->
-        <div class="mb-8">
-          <h1 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Catálogo Canônico Global
-          </h1>
-          <p class="mt-2 text-slate-400 text-sm sm:text-base max-w-2xl leading-relaxed">
-            Explore manhuas, manhwas e mangás sincronizados em tempo real com fontes de extração rápida.
-          </p>
+        <div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+              Catálogo Canônico Global
+            </h1>
+            <p class="mt-2 text-slate-400 text-sm sm:text-base max-w-2xl leading-relaxed">
+              Explore manhuas, manhwas e mangás sincronizados em tempo real com fontes de extração rápida.
+            </p>
+          </div>
+          <button
+            *ngIf="isAuthenticated()"
+            type="button"
+            (click)="openImportModal()"
+            class="self-start sm:self-auto px-5 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs sm:text-sm font-semibold transition-colors shadow-lg shadow-brand-500/20 flex items-center gap-2 min-h-[44px] cursor-pointer"
+          >
+            <span>📥</span>
+            <span>Importar Obras</span>
+          </button>
         </div>
 
         <!-- Filter & Search Bar -->
@@ -255,6 +267,9 @@ import { NotificationBellComponent } from '../notifications/notification-bell.co
           </div>
         </div>
       </main>
+
+      <!-- Import Dialog Modal -->
+      <app-import-dialog *ngIf="showImportModal()" (closed)="onImportDialogClosed($event)"></app-import-dialog>
     </div>
   `
 })
@@ -262,6 +277,7 @@ export class CatalogListComponent implements OnInit {
   private catalogService = inject(CatalogService);
   private authService = inject(AuthService);
 
+  showImportModal = signal<boolean>(false);
   manhuas = signal<CanonicalManhua[]>([]);
   total = signal<number>(0);
   page = signal<number>(1);
@@ -340,5 +356,16 @@ export class CatalogListComponent implements OnInit {
     this.selectedSort.set('updated');
     this.page.set(1);
     this.loadCatalog();
+  }
+
+  openImportModal(): void {
+    this.showImportModal.set(true);
+  }
+
+  onImportDialogClosed(imported: boolean): void {
+    this.showImportModal.set(false);
+    if (imported) {
+      this.loadCatalog();
+    }
   }
 }

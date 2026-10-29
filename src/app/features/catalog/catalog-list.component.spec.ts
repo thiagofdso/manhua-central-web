@@ -93,4 +93,15 @@ describe('CatalogListComponent', () => {
       query: 'pig'
     }));
   });
+
+  it('should toggle import modal state and reload catalog when imported', () => {
+    expect(component.showImportModal()).toBeFalse();
+    component.openImportModal();
+    expect(component.showImportModal()).toBeTrue();
+
+    mockCatalogService.getCatalog.calls.reset();
+    component.onImportDialogClosed(true);
+    expect(component.showImportModal()).toBeFalse();
+    expect(mockCatalogService.getCatalog).toHaveBeenCalled();
+  });
 });
