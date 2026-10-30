@@ -89,4 +89,20 @@ describe('CatalogService', () => {
     expect(req.request.method).toBe('GET');
     req.flush(mockManhua);
   });
+
+  it('should fetch catalog domains', () => {
+    const mockDomains = [
+      { domain: 'asurascans.com', name: 'Asura Scans' },
+      { domain: 'pickmeupgacha.com', name: 'Pick Me Up Gacha' }
+    ];
+
+    service.getDomains().subscribe(domains => {
+      expect(domains.length).toBe(2);
+      expect(domains[1].domain).toBe('pickmeupgacha.com');
+    });
+
+    const req = httpMock.expectOne('/api/catalog/domains');
+    expect(req.request.method).toBe('GET');
+    req.flush(mockDomains);
+  });
 });

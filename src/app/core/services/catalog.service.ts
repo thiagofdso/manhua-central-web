@@ -43,4 +43,8 @@ export class CatalogService {
   getBySlug(slug: string): Observable<CanonicalManhua> {
     return this.http.get<CanonicalManhua>(`${this.baseUrl}/${encodeURIComponent(slug)}`);
   }
+
+  getDomains(): Observable<{ domain: string; name: string }[]> {
+    return this.http.get<{ domain: string; name: string }[]>(`${this.baseUrl}/domains`);
+  }
 }

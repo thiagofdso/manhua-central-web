@@ -1,3 +1,5 @@
+process.env.CHROME_BIN = process.env.CHROME_BIN || '/usr/bin/brave-browser';
+
 module.exports = function (config) {
   config.set({
     basePath: '',

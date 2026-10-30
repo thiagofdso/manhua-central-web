@@ -1,14 +1,20 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { CatalogService } from '../../core/services/catalog.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { LibraryService } from '../../core/services/library.service';
+import { RankingService } from '../../core/services/ranking.service';
 import { CanonicalManhua } from '../../core/models/catalog.model';
+import { StarRatingComponent } from '../../shared/components/star-rating.component';
+import { DownloadsDialogComponent } from '../downloads/downloads-dialog.component';
+import { NotificationBellComponent } from '../notifications/notification-bell.component';
+import { getProxiedCoverUrl, handleCoverError } from '../../core/utils/image.util';
 
 @Component({
   selector: 'app-catalog-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, StarRatingComponent, DownloadsDialogComponent, NotificationBellComponent],
   template: `
     <div class="min-h-screen bg-dark-950 text-slate-100 pb-20">
       <!-- App Shell Header -->
@@ -33,7 +39,14 @@ import { CanonicalManhua } from '../../core/models/catalog.model';
             <a routerLink="/catalog" class="text-sm text-slate-300 hover:text-white transition-colors">
               Catálogo
             </a>
+            <a routerLink="/rankings" class="text-sm text-slate-300 hover:text-white transition-colors">
+              Rankings
+            </a>
             <ng-container *ngIf="isAuthenticated(); else loginLink">
+              <a routerLink="/library" class="text-sm text-slate-300 hover:text-white transition-colors">
+                Biblioteca
+              </a>
+              <app-notification-bell></app-notification-bell>
               <a routerLink="/profile" class="text-sm text-slate-300 hover:text-white transition-colors">
                 Perfil
               </a>
@@ -84,12 +97,13 @@ import { CanonicalManhua } from '../../core/models/catalog.model';
             <div class="w-full sm:w-64 md:w-72 flex-shrink-0 mx-auto md:mx-0 aspect-[3/4] bg-dark-950 rounded-2xl overflow-hidden border border-slate-800 shadow-xl relative">
               <img
                 *ngIf="manhua()?.coverUrl"
-                [src]="manhua()?.coverUrl"
+                [src]="getCoverUrl(manhua()?.coverUrl)"
+                (error)="onImageError($event, manhua()?.coverUrl)"
                 [alt]="manhua()?.title"
                 referrerpolicy="no-referrer"
                 class="w-full h-full object-cover"
               />
-              <div *ngIf="!manhua()?.coverUrl" class="w-full h-full flex items-center justify-center bg-dark-850 text-slate-500 font-bold">
+              <div class="cover-fallback w-full h-full items-center justify-center bg-dark-850 text-slate-500 font-bold" [style.display]="manhua()?.coverUrl ? 'none' : 'flex'">
                 Sem Capa
               </div>
             </div>
@@ -152,6 +166,26 @@ import { CanonicalManhua } from '../../core/models/catalog.model';
                   </div>
                 </div>
 
+                <!-- Community Rating Widget -->
+                <div class="mt-4 flex flex-wrap items-center justify-between gap-3 p-4 bg-slate-900/60 rounded-2xl border border-slate-800">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold text-slate-300">Avaliação da Comunidade:</span>
+                    <app-star-rating
+                      [rating]="manhua()?.bayesianRating || 0"
+                      [totalVotes]="manhua()?.totalVotes || 0"
+                      [userRating]="userRating()"
+                      [interactive]="true"
+                      size="md"
+                      (rate)="onRate($event)"
+                    />
+                  </div>
+                  @if (ratingFeedback()) {
+                    <span class="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 animate-fade-in">
+                      {{ ratingFeedback() }}
+                    </span>
+                  }
+                </div>
+
                 <!-- Synopsis -->
                 <div class="mt-6">
                   <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Sinopse</h2>
@@ -178,6 +212,19 @@ import { CanonicalManhua } from '../../core/models/catalog.model';
                   </svg>
                   <span>{{ addedToLibrary() ? 'Na Minha Biblioteca' : '+ Adicionar à Biblioteca' }}</span>
                 </button>
+
+                <button
+                  type="button"
+                  (click)="isDownloadsDialogOpen.set(true)"
+                  class="px-5 py-3 rounded-xl text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer flex items-center space-x-2 min-h-[44px]"
+                >
+                  <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <span>Baixar Capítulos</span>
+                </button>
               </div>
             </div>
           </div>
@@ -196,28 +243,46 @@ import { CanonicalManhua } from '../../core/models/catalog.model';
 
             <!-- Chapters Grid -->
             <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5 max-h-96 overflow-y-auto pr-1">
-              <div
+              <a
                 *ngFor="let ch of chapters()"
+                [routerLink]="['/reader', manhua()?.slug, ch]"
                 class="p-2.5 bg-dark-850 border border-slate-800 hover:border-brand-500 hover:bg-brand-950/30 rounded-xl text-center text-xs font-semibold text-slate-200 hover:text-brand-300 transition-colors cursor-pointer min-h-[38px] flex items-center justify-center"
               >
                 Cap. {{ ch }}
-              </div>
+              </a>
             </div>
           </div>
         </div>
+
+        <!-- Downloads Dialog Modal -->
+        <app-downloads-dialog
+          *ngIf="manhua()"
+          [manhua]="manhua()!"
+          [isOpen]="isDownloadsDialogOpen()"
+          (close)="isDownloadsDialogOpen.set(false)"
+        />
       </main>
     </div>
   `
 })
 export class CatalogDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private catalogService = inject(CatalogService);
   private authService = inject(AuthService);
+  private libraryService = inject(LibraryService);
+  private rankingService = inject(RankingService);
 
   manhua = signal<CanonicalManhua | null>(null);
   loading = signal<boolean>(false);
   error = signal<string | null>(null);
   addedToLibrary = signal<boolean>(false);
+  userRating = signal<number | null>(null);
+  ratingFeedback = signal<string | null>(null);
+  isDownloadsDialogOpen = signal<boolean>(false);
+
+  getCoverUrl = getProxiedCoverUrl;
+  onImageError = handleCoverError;
 
   chapters = computed<number[]>(() => {
     const m = this.manhua();
@@ -252,6 +317,10 @@ export class CatalogDetailComponent implements OnInit {
       next: (m) => {
         this.manhua.set(m);
         this.loading.set(false);
+        if (this.isAuthenticated()) {
+          this.checkLibraryStatus(m.id);
+          this.checkUserRating(m.id);
+        }
       },
       error: () => {
         this.error.set('Obra não encontrada no catálogo global.');
@@ -260,7 +329,75 @@ export class CatalogDetailComponent implements OnInit {
     });
   }
 
+  private checkUserRating(canonicalId: number): void {
+    this.rankingService.getUserRating(canonicalId).subscribe({
+      next: (res) => {
+        if (res && res.score !== null) {
+          this.userRating.set(res.score);
+        }
+      }
+    });
+  }
+
+  onRate(score: number): void {
+    if (!this.isAuthenticated()) {
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    const m = this.manhua();
+    if (!m) return;
+
+    this.rankingService.submitRating(m.id, score).subscribe({
+      next: (updated) => {
+        this.userRating.set(score);
+        this.ratingFeedback.set(`Voto computado: ${score} ★`);
+        this.manhua.update((prev) => prev ? {
+          ...prev,
+          bayesianRating: updated.bayesianRating,
+          totalVotes: updated.totalVotes
+        } : null);
+
+        setTimeout(() => this.ratingFeedback.set(null), 3000);
+      }
+    });
+  }
+
+  private checkLibraryStatus(canonicalId: number): void {
+    if (this.libraryService.isInLibrary(canonicalId)) {
+      this.addedToLibrary.set(true);
+    } else {
+      this.libraryService.getLibrary().subscribe({
+        next: () => {
+          if (this.libraryService.isInLibrary(canonicalId)) {
+            this.addedToLibrary.set(true);
+          }
+        }
+      });
+    }
+  }
+
   addToLibrary(): void {
-    this.addedToLibrary.set(true);
+    if (!this.isAuthenticated()) {
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    const m = this.manhua();
+    if (!m) return;
+
+    this.libraryService.addToLibrary({
+      canonicalManhuaId: m.id,
+      currentChapter: 1,
+      isFavorite: false
+    }).subscribe({
+      next: () => {
+        this.addedToLibrary.set(true);
+      },
+      error: () => {
+        // If already in library, treat as added
+        this.addedToLibrary.set(true);
+      }
+    });
   }
 }
