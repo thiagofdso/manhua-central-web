@@ -54,8 +54,13 @@ describe('CatalogListComponent', () => {
   };
 
   beforeEach(async () => {
-    mockCatalogService = jasmine.createSpyObj('CatalogService', ['getCatalog']);
+    mockCatalogService = jasmine.createSpyObj('CatalogService', ['getCatalog', 'getDomains']);
     mockCatalogService.getCatalog.and.returnValue(of(mockResponse));
+    mockCatalogService.getDomains.and.returnValue(of([
+      { domain: 'asurascans.com', name: 'Asura Scans' },
+      { domain: 'pickmeupgacha.com', name: 'Pick Me Up Gacha' },
+      { domain: 'mangafire.to', name: 'MangaFire' }
+    ]));
 
     mockImportService = jasmine.createSpyObj('ImportService', ['getDomains']);
     mockImportService.getDomains.and.returnValue(of([
@@ -86,7 +91,7 @@ describe('CatalogListComponent', () => {
     expect(mockCatalogService.getCatalog).toHaveBeenCalled();
     expect(component.manhuas().length).toBe(2);
     expect(component.manhuas()[0].title).toBe('Overgeared');
-    expect(mockImportService.getDomains).toHaveBeenCalled();
+    expect(mockCatalogService.getDomains).toHaveBeenCalled();
   });
 
   it('should filter by domain when domain button is clicked', () => {

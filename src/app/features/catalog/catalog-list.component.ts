@@ -309,11 +309,14 @@ export class CatalogListComponent implements OnInit {
     { domain: 'arenascan.com', name: 'ArenaScan' },
     { domain: 'asurascans.com', name: 'Asura Scans' },
     { domain: 'comix.to', name: 'Comix' },
+    { domain: 'levelingwithgods.com', name: 'Leveling with Gods' },
+    { domain: 'magicemperor.online', name: 'Magic Emperor' },
     { domain: 'mangafire.to', name: 'MangaFire' },
     { domain: 'mangak.io', name: 'MangaK' },
     { domain: 'manhuatop.org', name: 'ManhuaTop' },
     { domain: 'manhuaus.com', name: 'ManhuaUS' },
     { domain: 'mgeko.cc', name: 'MGeko' },
+    { domain: 'pickmeupgacha.com', name: 'Pick Me Up Gacha' },
     { domain: 'ravenscans.org', name: 'RavenScans' }
   ]);
 
@@ -330,13 +333,10 @@ export class CatalogListComponent implements OnInit {
   }
 
   loadDomains(): void {
-    this.importService.getDomains().subscribe({
+    this.catalogService.getDomains().subscribe({
       next: (domains) => {
-        const list = domains
-          .filter(d => d.domain !== 'all' && d.supported)
-          .map(d => ({ domain: d.domain, name: d.name }));
-        if (list.length > 0) {
-          this.availableDomains.set(list);
+        if (domains && domains.length > 0) {
+          this.availableDomains.set(domains);
         }
       },
       error: () => {
