@@ -5,6 +5,7 @@ export interface ImportDomain {
 }
 
 export interface ImportAnnotatedItem {
+  coverState?: 'pending' | 'processing' | 'ready' | 'failed';
   title: string;
   slug: string;
   urlTemplate: string;
@@ -17,6 +18,8 @@ export interface ImportAnnotatedItem {
 }
 
 export interface ImportBrowseResponse {
+  syncing?: boolean;
+  warning?: string;
   domain: string;
   page: number;
   totalPages: number;

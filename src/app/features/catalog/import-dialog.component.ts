@@ -1,4 +1,5 @@
-import { Component, OnInit, EventEmitter, Output, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, DestroyRef, EventEmitter, Output, inject, signal, computed } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
@@ -140,6 +141,8 @@ import { getProxiedCoverUrl, handleCoverError } from '../../core/utils/image.uti
 
         <!-- Works List (Scrollable Area) -->
         <div class="p-6 flex-1 overflow-y-auto space-y-2.5 min-h-[240px] max-h-[380px]">
+          <p *ngIf="syncing()" role="status" class="text-xs text-brand-300 py-2">Atualizando obras e capas da plataforma. Os resultados aparecerão automaticamente.</p>
+          <p *ngIf="warning()" role="status" class="text-xs text-amber-300 py-2">{{ warning() }}</p>
           <!-- Loading State -->
           <div *ngIf="loading()" class="py-16 flex flex-col items-center justify-center text-slate-400">
             <div class="w-8 h-8 border-4 border-brand-500/20 border-t-brand-500 rounded-full animate-spin mb-3"></div>
@@ -160,7 +163,7 @@ import { getProxiedCoverUrl, handleCoverError } from '../../core/utils/image.uti
           </div>
 
           <!-- Empty State -->
-          <div *ngIf="!loading() && !error() && displayedItems().length === 0" class="py-16 text-center text-slate-400">
+          <div *ngIf="!loading() && !syncing() && !error() && displayedItems().length === 0" class="py-16 text-center text-slate-400">
             <p class="text-sm font-semibold text-slate-300">Nenhuma obra encontrada nesta página com este filtro</p>
             <p class="text-xs mt-1 text-slate-500">Tente alternar o filtro ou buscar por outro termo.</p>
           </div>
@@ -192,8 +195,8 @@ import { getProxiedCoverUrl, handleCoverError } from '../../core/utils/image.uti
                 referrerpolicy="no-referrer"
                 class="w-full h-full object-cover"
               />
-              <span *ngIf="!item.coverUrl" class="text-[9px] text-slate-600 font-semibold text-center px-1">
-                Sem capa
+              <span *ngIf="!item.coverUrl" class="cover-fallback text-[9px] text-slate-500 font-semibold text-center px-1" role="status">
+                {{ item.coverState === 'pending' ? 'Capa na fila' : item.coverState === 'processing' ? 'Baixando capa' : item.coverState === 'failed' ? 'Capa indisponível' : 'Sem capa' }}
               </span>
             </div>
 
@@ -270,7 +273,17 @@ import { getProxiedCoverUrl, handleCoverError } from '../../core/utils/image.uti
     </div>
   `
 })
-export class ImportDialogComponent implements OnInit {
+export class ImportDialogComponent implements OnInit, OnDestroy {
+  private destroyRef = inject(DestroyRef);
+  private refreshTimer?: ReturnType<typeof setTimeout>;
+  private requestVersion = 0;
+  syncing = signal(false);
+  warning = signal<string | null>(null);
+
+  ngOnDestroy(): void {
+    clearTimeout(this.refreshTimer);
+    this.requestVersion++;
+  }
   getCoverUrl = getProxiedCoverUrl;
   onImageError = handleCoverError;
   private importService = inject(ImportService);
@@ -327,18 +340,25 @@ export class ImportDialogComponent implements OnInit {
     });
   }
 
-  loadWorks(): void {
-    this.loading.set(true);
+  loadWorks(background = false): void {
+    clearTimeout(this.refreshTimer);
+    const version = ++this.requestVersion;
+    if (!background) this.loading.set(true);
     this.error.set(null);
 
-    this.importService.browse(this.selectedDomain(), this.searchQuery(), this.page()).subscribe({
+    this.importService.browse(this.selectedDomain(), this.searchQuery(), this.page()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
+        if (version !== this.requestVersion) return;
+        this.syncing.set(!!res.syncing);
+        this.warning.set(res.warning || null);
         this.items.set(res.items);
         this.page.set(res.page);
         this.totalPages.set(res.totalPages);
         this.loading.set(false);
+        if (res.syncing) this.refreshTimer = setTimeout(() => this.loadWorks(true), 3000);
       },
       error: (err) => {
+        if (version !== this.requestVersion) return;
         this.error.set(err?.error?.error || 'Falha ao buscar obras da plataforma.');
         this.loading.set(false);
       }
